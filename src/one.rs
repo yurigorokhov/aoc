@@ -1,5 +1,11 @@
 use std::{error::Error, fs};
 
+use clap::Args;
+
+#[derive(Args, Debug)]
+pub struct CommandOneArgs {
+   file: String,
+}
 
 const RADIX: u32 = 10;
 const DIGITS: [&str; 9] = [
@@ -38,8 +44,8 @@ fn parse_line(line: &str) -> Result<u32, Box<dyn Error>> {
     Ok(line_numbers.first().unwrap() * RADIX + line_numbers.last().unwrap())
 }
 
-pub fn run() {
-    let contents = fs::read_to_string("./inputs/one.txt")
+pub fn run(args: &CommandOneArgs) {
+    let contents = fs::read_to_string(args.file.as_str())
         .expect("Should have been able to read the file");
     let sum: u32 = contents
         .split("\n")

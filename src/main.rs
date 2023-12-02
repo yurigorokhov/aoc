@@ -1,24 +1,25 @@
 pub mod one;
 
+use one::CommandOneArgs;
 
-use core::panic;
+use clap::{Parser, Subcommand};
 
-use clap::Parser;
-
-/// Search for a pattern in a file and display the lines that contain it.
-#[derive(Parser)]
+#[derive(Parser, Debug)]
+#[command(author, version, about, long_about = None)]
 struct Cli {
-    /// The pattern to look for
-    exercise: String,
+   #[command(subcommand)]
+   command: Commands,
+}
+
+#[derive(Subcommand, Debug)]
+enum Commands {
+   One(CommandOneArgs)
 }
 
 
 fn main() {
     let args = Cli::parse();
-    match args.exercise.as_str() {
-        "one" => one::run(),
-        _ => {
-            panic!("Unknown exercise {}", args.exercise);
-        }
-    }
+    match &args.command {
+        Commands::One(cmd_args) => one::run(cmd_args),
+     }
 }
