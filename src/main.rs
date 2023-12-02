@@ -1,6 +1,8 @@
 pub mod one;
+pub mod two;
 
 use one::CommandOneArgs;
+use two::CommandTwoArgs;
 
 use clap::{Parser, Subcommand};
 
@@ -13,7 +15,8 @@ struct Cli {
 
 #[derive(Subcommand, Debug)]
 enum Commands {
-   One(CommandOneArgs)
+   One(CommandOneArgs),
+   Two(CommandTwoArgs),
 }
 
 
@@ -22,6 +25,9 @@ fn main() {
     match &args.command {
       Commands::One(cmd_args) => {
          one::run(cmd_args);
+      },
+      Commands::Two(cmd_args) => {
+         two::run(cmd_args);
       },
    }
 }
