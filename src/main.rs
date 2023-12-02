@@ -20,6 +20,8 @@ enum Commands {
 fn main() {
     let args = Cli::parse();
     match &args.command {
-        Commands::One(cmd_args) => one::run(cmd_args),
-     }
+      Commands::One(cmd_args) => {
+         one::run(cmd_args);
+      },
+   }
 }

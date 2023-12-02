@@ -44,7 +44,7 @@ fn parse_line(line: &str) -> Result<u32, Box<dyn Error>> {
     Ok(line_numbers.first().unwrap() * RADIX + line_numbers.last().unwrap())
 }
 
-pub fn run(args: &CommandOneArgs) {
+pub fn run(args: &CommandOneArgs) -> u32 {
     let contents = fs::read_to_string(args.file.as_str())
         .expect("Should have been able to read the file");
     let sum: u32 = contents
@@ -52,4 +52,18 @@ pub fn run(args: &CommandOneArgs) {
         .filter_map(|line| parse_line(line).ok())
         .sum();
     println!("The sum is: {}", sum);
+    sum
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_sample() {
+        assert_eq!(
+            run(&CommandOneArgs{file: String::from("./inputs/one_test.txt")}),
+            281
+        );
+    }
 }
