@@ -6,8 +6,8 @@ use clap::Args;
 pub struct CommandOneArgs {
    file: String,
    
-   #[clap(long, short, action)]
-   part_two: bool
+   #[clap(long, short = '2', action)]
+   two: bool
 }
 
 const RADIX: u32 = 10;
@@ -54,7 +54,7 @@ pub fn run(args: &CommandOneArgs) -> u32 {
         .expect("Should have been able to read the file");
     let sum: u32 = contents
         .split("\n")
-        .filter_map(|line| parse_line(line, args.part_two).ok())
+        .filter_map(|line| parse_line(line, args.two).ok())
         .sum();
     println!("The sum is: {}", sum);
     sum
