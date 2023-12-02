@@ -1,4 +1,4 @@
-use std::{fs::File, io::{self, BufRead}, cmp::Ordering};
+use std::{fs::File, io::{self, BufRead}, cmp::Ordering, error::Error};
 
 use clap::Args;
 
@@ -17,13 +17,16 @@ struct Game {
 }
 
 impl Game {
-    pub fn from_str(value: String) -> Self {
+    pub fn from_str(value: String) -> Option<Self> {
         let split: Vec<&str> = value.split(":").collect();
         let game_id = split[0][5..].parse::<u32>().unwrap();
-        Game{ 
+        Some(Game{ 
             id: game_id, 
-            configurations: split[1].split(";").map(|g| GameConfiguration::from_str(g.trim().to_string())).collect()
-        }
+            configurations: split[1]
+                .split(";")
+                .map(|g| GameConfiguration::from_str(g.trim().to_string()).unwrap())
+                .collect()
+        })
     }
 
     fn min(&self) -> GameConfiguration {
@@ -58,24 +61,24 @@ impl PartialOrd for GameConfiguration {
 }
 
 impl GameConfiguration {
-    pub fn from_str(value: String) -> Self {
+    pub fn from_str(value: String) -> Result<Self, Box<dyn Error>> {
         let mut r = 0u32;
         let mut g = 0u32;
         let mut b = 0u32;
-        value
+        let configurations = value
             .trim()
             .split(",")
-            .map(|s| s.trim().to_lowercase())
-            .for_each(|s| {
-                let vals: Vec<&str> = s.split(" ").collect();
+            .map(|s| s.trim().to_lowercase());
+        for c in configurations {
+            let vals: Vec<&str> = c.split(" ").collect();
                 match vals[..] {
                     [count, "red"] => r = count.parse::<u32>().unwrap(),
                     [count, "green"] => g = count.parse::<u32>().unwrap(),
                     [count, "blue"] => b = count.parse::<u32>().unwrap(),
-                    _ => panic!("Could not parse")
+                    _ => return Err(format!("Could not parse {}", value).into())
                 }
-            });
-        Self { red: r, green: g, blue: b }
+        }
+        Ok(Self { red: r, green: g, blue: b })
     }
 
     fn power(&self) -> u32 {
@@ -94,7 +97,7 @@ pub fn run(args: &CommandTwoArgs) -> u32 {
         let test_configuration = GameConfiguration { red: 12, green: 13, blue: 14 };
         let sum: u32 = lines
             .into_iter()
-            .map(|line| Game::from_str(line.unwrap()))
+            .map(|line| Game::from_str(line.unwrap()).unwrap())
             .filter(|g| g.configurations.iter().all(|c| c <= &test_configuration))
             .map(|g| g.id)
             .sum();
@@ -103,7 +106,7 @@ pub fn run(args: &CommandTwoArgs) -> u32 {
     } else {
         let sum: u32 = lines
             .into_iter()
-            .map(|line| Game::from_str(line.unwrap()).min().power())
+            .map(|line| Game::from_str(line.unwrap()).unwrap().min().power())
             .sum();
         println!("The sum is: {}", sum);
         sum
@@ -117,7 +120,7 @@ mod tests {
     #[test]
     fn game_configuration_from_str() {
         assert_eq!(
-            GameConfiguration::from_str("1 blue, 2 green".to_string()),
+            GameConfiguration::from_str("1 blue, 2 green".to_string()).unwrap(),
             GameConfiguration{ red: 0, blue: 1, green: 2 },
         );
     }
@@ -138,7 +141,7 @@ mod tests {
     #[test]
     fn game_from_str() {
         assert_eq!(
-            Game::from_str("Game 1: 3 blue, 4 red; 1 red, 2 green, 6 blue; 2 green".to_string()),
+            Game::from_str("Game 1: 3 blue, 4 red; 1 red, 2 green, 6 blue; 2 green".to_string()).unwrap(),
             Game { id: 1, configurations: vec![
                 GameConfiguration { red: 4, green: 0, blue: 3 },
                 GameConfiguration { red: 1, green: 2, blue: 6 },
