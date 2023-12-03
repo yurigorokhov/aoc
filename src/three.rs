@@ -17,18 +17,19 @@ struct TokenPosition {
     end: i32,
 }
 
+impl TokenPosition {
+    fn intersect(&self, other: &Self) -> bool {
+        if (self.line_number - other.line_number).abs() > 1 {
+            return false
+        }
+        return other.start <= self.end + 1 && other.end >= self.start - 1
+    }
+}
 
 #[derive(PartialEq, Debug)]
 struct Token<T> {
     value: T,
     position: TokenPosition,
-}
-
-fn position_intersection(pos1: &TokenPosition, pos2: &TokenPosition) -> bool {
-    if (pos1.line_number - pos2.line_number).abs() > 1 {
-        return false
-    }
-    return pos2.start <= pos1.end + 1 && pos2.end >= pos1.start - 1
 }
 
 fn parse_tokens<I>(lines: I) -> (Vec<Token<u32>>, Vec<Token<char>>)
@@ -104,7 +105,7 @@ pub fn run(args: &CommandThreeArgs) -> u32 {
     if !args.two {
         let sum = numbers
             .iter()
-            .filter(|n| symbols.iter().any(|s| position_intersection(&n.position, &s.position)))
+            .filter(|n| symbols.iter().any(|s| n.position.intersect(&s.position)))
             .map(|n| n.value)
             .sum();
         println!("The sum is: {}", sum);
@@ -116,7 +117,7 @@ pub fn run(args: &CommandThreeArgs) -> u32 {
             .map(|star| {
                 let parts: Vec<&Token<u32>> = numbers
                     .iter()
-                    .filter(|n| position_intersection(&star.position, &n.position))
+                    .filter(|n| star.position.intersect(&n.position))
                     .collect::<Vec<&Token<u32>>>()
                     .into();
 
