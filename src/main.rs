@@ -1,8 +1,10 @@
 pub mod one;
 pub mod two;
+pub mod three;
 
 use one::CommandOneArgs;
 use two::CommandTwoArgs;
+use three::CommandThreeArgs;
 
 use clap::{Parser, Subcommand};
 
@@ -17,6 +19,7 @@ struct Cli {
 enum Commands {
    One(CommandOneArgs),
    Two(CommandTwoArgs),
+   Three(CommandThreeArgs),
 }
 
 
@@ -28,6 +31,9 @@ fn main() {
       },
       Commands::Two(cmd_args) => {
          two::run(cmd_args);
+      },
+      Commands::Three(cmd_args) => {
+         three::run(cmd_args);
       },
    }
 }
