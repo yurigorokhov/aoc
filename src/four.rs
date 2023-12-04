@@ -1,4 +1,6 @@
-use std::{fs::File, io::{self, BufRead}};
+use thiserror::Error;
+
+use std::{fs::File, io::{self, BufRead}, str::FromStr, error::Error};
 use std::collections::VecDeque;
 
 use clap::Args;
@@ -18,17 +20,40 @@ struct Card {
     draw: Vec<i32>,
 }
 
-impl Card {
-    pub fn new_from_line(line: String) -> Self {
-        let split: Vec<_> = line.split(&[':', '|'][..]).collect();
-        assert!(split.len() == 3);
-        Card {
-            number: split[0][4..].trim().parse::<u32>().unwrap(),
-            winning: split[1].split_whitespace().into_iter().map(|i| i.parse::<i32>().unwrap()).collect(),
-            draw: split[2].split_whitespace().into_iter().map(|i| i.parse::<i32>().unwrap()).collect(),
-        }
-    }
+#[derive(Error, Debug, PartialEq)]
+pub enum CardParseError {
+    #[error("Failed to parse integer")]
+    ParseError(#[from] std::num::ParseIntError),
 
+    #[error("Failed to parse card from string: `{0}`")]
+    FormatError(String)
+}
+
+impl FromStr for Card {
+    type Err = CardParseError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let split: Vec<_> = s.split(&[':', '|'][..]).collect();
+        if split.len() != 3 {
+            return Err(CardParseError::FormatError(s.to_string()));
+        }
+        Ok(Card {
+            number: split[0][4..].trim().parse::<u32>()?,
+            winning: split[1]
+                .split_whitespace()
+                .into_iter()
+                .map(|i| i.parse::<i32>())
+                .collect::<Result<Vec<i32>, std::num::ParseIntError>>()?,
+            draw: split[2]
+                .split_whitespace()
+                .into_iter()
+                .map(|i| i.parse::<i32>())
+                .collect::<Result<Vec<i32>, std::num::ParseIntError>>()?,
+        })
+    }
+}
+
+impl Card {
     fn number_matches(&self) -> u32 {
         self.draw.iter().filter(|n| self.winning.contains(n)).count() as u32
     }
@@ -43,19 +68,19 @@ impl Card {
     }
 }
 
-pub fn run(args: &CommandFourArgs) -> u32 {
+pub fn run(args: &CommandFourArgs) -> Result<u32, Box<dyn Error>> {
     let file = File::open(args.file.as_str())
         .expect("Should have been able to read the file");
     let cards: Vec<Card> = io::BufReader::new(file)
         .lines()
         .into_iter()
-        .map(|l| Card::new_from_line(l.unwrap()))
-        .collect();
+        .map(|l| l.unwrap().as_str().parse::<Card>())
+        .collect::<Result<Vec<Card>, CardParseError>>()?;
     
     if !args.two {
         let sum = cards.iter().map(|c| c.score()).sum();
         println!("The sum is: {}", sum);
-        sum
+        Ok(sum)
     } else {
         let mut queue: VecDeque<&Card> = VecDeque::new();
         for card in cards.iter() {
@@ -70,7 +95,7 @@ pub fn run(args: &CommandFourArgs) -> u32 {
             }
         }
         println!("The sum is: {}", count);
-        count
+        Ok(count)
     }
 }
 
@@ -80,16 +105,19 @@ mod tests {
 
     #[test]
     fn test_input() {
+        let r = self::run(&CommandFourArgs{file: "./inputs/four_test.txt".to_string(), two: false});
+        assert!(r.is_ok());
         assert_eq!(
-            self::run(&CommandFourArgs{file: "./inputs/four_test.txt".to_string(), two: false}),
+            r.unwrap(),
             13,
         );
     }
 
     #[test]
     fn test_input_part_two() {
+        let r = self::run(&CommandFourArgs{file: "./inputs/four_test.txt".to_string(), two: true});
         assert_eq!(
-            self::run(&CommandFourArgs{file: "./inputs/four_test.txt".to_string(), two: true}),
+            r.unwrap(),
             30,
         );
     }
@@ -97,12 +125,23 @@ mod tests {
     #[test]
     fn test_new_from_line() {
         assert_eq!(
-            Card::new_from_line(String::from("Card 1: 41 48 83 86 17 | 83 86  6 31 17  9 48 53")),
-            Card {
+            Card::from_str("Card 1: 41 48 83 86 17 | 83 86  6 31 17  9 48 53"),
+            Ok(Card {
                 number: 1,
                 winning: vec![41, 48, 83, 86, 17],
                 draw: vec![83, 86, 6, 31, 17, 9, 48, 53],
-            },
+            }),
         );
+    }
+
+    #[test]
+    fn test_new_from_line_error() {
+        let r = Card::from_str("Card a: 41 48 83 86 17 | 83 86  6 31 17  9 48 53");
+        assert!(r.is_err());
+        assert_eq!(r.err().unwrap().to_string(), "Failed to parse integer");
+
+        let r = Card::from_str("Card 1: a 48 83 86 17 | 83 86  6 31 17  9 48 53");
+        assert!(r.is_err());
+        assert_eq!(r.err().unwrap().to_string(), "Failed to parse integer");
     }
 }
