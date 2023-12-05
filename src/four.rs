@@ -1,6 +1,8 @@
 use thiserror::Error;
+use anyhow::Error as AnyError;
+use anyhow::Result as AnyResult;
 
-use std::{fs::File, io::{self, BufRead}, str::FromStr, error::Error};
+use std::{fs::File, io::{self, BufRead}, str::FromStr};
 use std::collections::VecDeque;
 
 use clap::Args;
@@ -22,7 +24,7 @@ struct Card {
 
 #[derive(Error, Debug, PartialEq)]
 pub enum CardParseError {
-    #[error("Failed to parse integer")]
+    #[error(transparent)]
     ParseError(#[from] std::num::ParseIntError),
 
     #[error("Failed to parse card from string: `{0}`")]
@@ -68,14 +70,14 @@ impl Card {
     }
 }
 
-pub fn run(args: &CommandFourArgs) -> Result<u32, Box<dyn Error>> {
+pub fn run(args: &CommandFourArgs) -> AnyResult<u32> {
     let file = File::open(args.file.as_str())
         .expect("Should have been able to read the file");
     let cards: Vec<Card> = io::BufReader::new(file)
         .lines()
         .into_iter()
-        .map(|l| l.unwrap().as_str().parse::<Card>())
-        .collect::<Result<Vec<Card>, CardParseError>>()?;
+        .map(|l| l?.as_str().parse::<Card>().map_err(|e| AnyError::from(e)))
+        .collect::<Result<Vec<Card>, AnyError>>()?;
     
     if !args.two {
         let sum = cards.iter().map(|c| c.score()).sum();
@@ -138,10 +140,10 @@ mod tests {
     fn test_new_from_line_error() {
         let r = Card::from_str("Card a: 41 48 83 86 17 | 83 86  6 31 17  9 48 53");
         assert!(r.is_err());
-        assert_eq!(r.err().unwrap().to_string(), "Failed to parse integer");
+        assert_eq!(r.err().unwrap().to_string(), "invalid digit found in string");
 
         let r = Card::from_str("Card 1: a 48 83 86 17 | 83 86  6 31 17  9 48 53");
         assert!(r.is_err());
-        assert_eq!(r.err().unwrap().to_string(), "Failed to parse integer");
+        assert_eq!(r.err().unwrap().to_string(), "invalid digit found in string");
     }
 }
