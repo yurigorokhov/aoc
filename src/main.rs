@@ -2,11 +2,13 @@ pub mod one;
 pub mod two;
 pub mod three;
 pub mod four;
+pub mod five;
 
 use one::CommandOneArgs;
 use two::CommandTwoArgs;
 use three::CommandThreeArgs;
 use four::CommandFourArgs;
+use five::CommandFiveArgs;
 
 use clap::{Parser, Subcommand};
 
@@ -23,6 +25,7 @@ enum Commands {
    Two(CommandTwoArgs),
    Three(CommandThreeArgs),
    Four(CommandFourArgs),
+   Five(CommandFiveArgs),
 }
 
 
@@ -39,7 +42,10 @@ fn main() {
          let _ = three::run(cmd_args);
       },
       Commands::Four(cmd_args) => {
-         let _ = four::run(&cmd_args);
+         let _ = four::run(&cmd_args).unwrap();
+      },
+      Commands::Five(cmd_args) => {
+         let _ = five::run(&cmd_args).unwrap();
       }
    }
 }
