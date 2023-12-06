@@ -1,13 +1,16 @@
-use std::{fs::File, io::{self, BufRead}};
+use std::{
+    fs::File,
+    io::{self, BufRead},
+};
 
 use clap::Args;
 
 #[derive(Args, Debug)]
 pub struct CommandThreeArgs {
-   file: String,
-   
-   #[clap(long, short = '2', action)]
-   two: bool
+    file: String,
+
+    #[clap(long, short = '2', action)]
+    two: bool,
 }
 
 #[derive(PartialEq, Debug)]
@@ -20,9 +23,9 @@ struct TokenPosition {
 impl TokenPosition {
     fn intersect(&self, other: &Self) -> bool {
         if (self.line_number - other.line_number).abs() > 1 {
-            return false
+            return false;
         }
-        return other.start <= self.end + 1 && other.end >= self.start - 1
+        return other.start <= self.end + 1 && other.end >= self.start - 1;
     }
 }
 
@@ -41,18 +44,19 @@ where
     let mut buffer = String::new();
     let mut buffer_start_idx: Option<u32> = None;
 
-    let mut flush_number_buffer = |line_number: usize, char_idx: usize, buffer_start_idx: &mut Option<u32>, buffer: &mut String| {
+    let mut flush_number_buffer = |line_number: usize,
+                                   char_idx: usize,
+                                   buffer_start_idx: &mut Option<u32>,
+                                   buffer: &mut String| {
         if let Some(start_idx) = *buffer_start_idx {
-            numbers.push(
-                Token::<u32> { 
-                    value: buffer.parse::<u32>().unwrap(), 
-                    position: TokenPosition { 
-                        line_number: line_number as i32, 
-                        start: start_idx as i32, 
-                        end: (char_idx - 1) as i32
-                    } 
-                }
-            );
+            numbers.push(Token::<u32> {
+                value: buffer.parse::<u32>().unwrap(),
+                position: TokenPosition {
+                    line_number: line_number as i32,
+                    start: start_idx as i32,
+                    end: (char_idx - 1) as i32,
+                },
+            });
             *buffer_start_idx = None;
             buffer.clear();
         }
@@ -75,33 +79,35 @@ where
 
                 // if character is a symbol
                 if !ch.is_numeric() && ch != '.' {
-                    symbols.push(
-                        Token::<char> {
-                            value: ch,
-                            position: TokenPosition { 
-                                line_number: line_number as i32, 
-                                start: char_idx as i32, 
-                                end: char_idx as i32 
-                            }
-                        }
-                    );
+                    symbols.push(Token::<char> {
+                        value: ch,
+                        position: TokenPosition {
+                            line_number: line_number as i32,
+                            start: char_idx as i32,
+                            end: char_idx as i32,
+                        },
+                    });
                 }
             }
         }
-        flush_number_buffer(line_number, last_char_idx, &mut buffer_start_idx, &mut buffer);
+        flush_number_buffer(
+            line_number,
+            last_char_idx,
+            &mut buffer_start_idx,
+            &mut buffer,
+        );
     }
     (numbers, symbols)
 }
 
 pub fn run(args: &CommandThreeArgs) -> u32 {
-    let file = File::open(args.file.as_str())
-        .expect("Should have been able to read the file");
+    let file = File::open(args.file.as_str()).expect("Should have been able to read the file");
     let lines = io::BufReader::new(file)
         .lines()
         .into_iter()
         .map(|l| l.unwrap().to_string());
     let (numbers, symbols) = parse_tokens(lines);
-    
+
     if !args.two {
         let sum = numbers
             .iter()
@@ -123,7 +129,7 @@ pub fn run(args: &CommandThreeArgs) -> u32 {
 
                 // mulitply part values together
                 if parts.len() < 2 {
-                    return 0
+                    return 0;
                 }
                 parts.iter().map(|p| p.value).reduce(|a, e| a * e).unwrap() as u32
             })
@@ -140,7 +146,10 @@ mod tests {
     #[test]
     fn test_input() {
         assert_eq!(
-            self::run(&CommandThreeArgs{file: "./inputs/three_test.txt".to_string(), two: false}),
+            self::run(&CommandThreeArgs {
+                file: "./inputs/three_test.txt".to_string(),
+                two: false
+            }),
             4361,
         );
     }
@@ -148,7 +157,10 @@ mod tests {
     #[test]
     fn test_input_part_two() {
         assert_eq!(
-            self::run(&CommandThreeArgs{file: "./inputs/three_test.txt".to_string(), two: true}),
+            self::run(&CommandThreeArgs {
+                file: "./inputs/three_test.txt".to_string(),
+                two: true
+            }),
             467835,
         );
     }
@@ -158,28 +170,38 @@ mod tests {
         let (numbers, symbols) = parse_tokens([String::from("1234...*..!")].into_iter());
         assert_eq!(numbers.len(), 1);
         assert_eq!(
-            numbers.first(), 
-            Some(&Token::<u32>{ 
-                value: 1234, 
-                position: TokenPosition { 
-                    line_number: 0, 
+            numbers.first(),
+            Some(&Token::<u32> {
+                value: 1234,
+                position: TokenPosition {
+                    line_number: 0,
                     start: 0,
                     end: 3
                 }
             })
         );
         assert_eq!(symbols.len(), 2);
-        assert_eq!(symbols.first(), Some(
-            &Token::<char> {
+        assert_eq!(
+            symbols.first(),
+            Some(&Token::<char> {
                 value: '*',
-                position: TokenPosition{ line_number: 0, start: 7, end: 7 }
-            }
-        ));
-        assert_eq!(symbols.last(), Some(
-            &Token::<char> {
+                position: TokenPosition {
+                    line_number: 0,
+                    start: 7,
+                    end: 7
+                }
+            })
+        );
+        assert_eq!(
+            symbols.last(),
+            Some(&Token::<char> {
                 value: '!',
-                position: TokenPosition{ line_number: 0, start: 10, end: 10 }
-            }
-        ));
+                position: TokenPosition {
+                    line_number: 0,
+                    start: 10,
+                    end: 10
+                }
+            })
+        );
     }
 }

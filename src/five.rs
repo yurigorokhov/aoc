@@ -1,26 +1,26 @@
+use anyhow::bail;
 use anyhow::Error as AnyError;
 use anyhow::Result as AnyResult;
-use anyhow::bail;
 
+use std::fs::File;
 use std::io;
 use std::io::BufRead;
 use std::num::ParseIntError;
 use std::vec;
-use std::fs::File;
 
 use clap::Args;
 
 #[derive(Args, Debug)]
 pub struct CommandFiveArgs {
-   file: String,
-   
-   #[clap(long, short = '2', action)]
-   two: bool
+    file: String,
+
+    #[clap(long, short = '2', action)]
+    two: bool,
 }
 
 #[derive(Debug)]
 struct MappingCollection {
-    mappings: Vec<Mapping>
+    mappings: Vec<Mapping>,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq)]
@@ -32,22 +32,22 @@ struct Range {
 impl Range {
     fn intersection(&self, other: &Self) -> Option<Range> {
         if self.end < other.start || other.end < self.start {
-            return None
+            return None;
         }
-        Some(Range{
+        Some(Range {
             start: std::cmp::max(self.start, other.start),
-            end: std::cmp::min(self.end, other.end)
+            end: std::cmp::min(self.end, other.end),
         })
     }
 
     fn len(&self) -> u64 {
         self.end - self.start
     }
-    
+
     fn subtract(&self, other: &Self) -> Vec<Range> {
         let mut results = vec![];
         if self == other {
-            return results
+            return results;
         }
         if let Some(inter) = self.intersection(other) {
             if inter.start > self.start {
@@ -56,12 +56,12 @@ impl Range {
                     end: inter.start,
                 });
             }
-           if inter.end < self.end {
+            if inter.end < self.end {
                 results.push(Range {
                     start: inter.end,
                     end: self.end,
                 })
-           }
+            }
         } else {
             results.push(self.clone());
         }
@@ -88,10 +88,10 @@ impl MappingCollection {
     fn map(&self, elem: u64) -> u64 {
         for mapping in self.mappings.iter() {
             if elem >= mapping.src.start && elem < mapping.src.end {
-                return mapping.dst.start + (elem - mapping.src.start)
+                return mapping.dst.start + (elem - mapping.src.start);
             }
         }
-        return elem
+        return elem;
     }
 
     fn map_range(&self, range: Range) -> Vec<Range> {
@@ -103,18 +103,21 @@ impl MappingCollection {
             for r in remainders {
                 let intersection = r.intersection(&mapping.src);
                 let remainder = match intersection {
-                    Some(intersection_range) => { 
+                    Some(intersection_range) => {
                         // map matching range to output range
-                        let start = mapping.dst.start + (intersection_range.start - mapping.src.start);
-                        mapped.push(Range{
+                        let start =
+                            mapping.dst.start + (intersection_range.start - mapping.src.start);
+                        mapped.push(Range {
                             start: start,
                             end: start + intersection_range.len(),
                         });
 
                         // remainder
-                        r.subtract(&intersection_range) 
-                    },
-                    None => { vec![r] }
+                        r.subtract(&intersection_range)
+                    }
+                    None => {
+                        vec![r]
+                    }
                 };
                 // println!("INTERSECT\n\n{:#?} <> {:#?} = {:#?} | {:#?}\n\n", r, mapping.src, intersection, remainder);
                 for r in remainder {
@@ -146,16 +149,21 @@ impl std::str::FromStr for Mapping {
         if vals.len() != 3 {
             bail!("Could not parse mapping line: {}", s);
         }
-        Ok(Mapping { 
-            src: Range {start: vals[1], end: vals[1] + vals[2]},
-            dst: Range {start: vals[0], end: vals[0] + vals[2]},
-         })
+        Ok(Mapping {
+            src: Range {
+                start: vals[1],
+                end: vals[1] + vals[2],
+            },
+            dst: Range {
+                start: vals[0],
+                end: vals[0] + vals[2],
+            },
+        })
     }
 }
 
 pub fn run(args: &CommandFiveArgs) -> AnyResult<u64> {
-    let file = File::open(args.file.as_str())
-        .expect("Should have been able to read the file");
+    let file = File::open(args.file.as_str()).expect("Should have been able to read the file");
     let mut lines = io::BufReader::new(file)
         .lines()
         .filter_map(|s| s.ok())
@@ -164,25 +172,34 @@ pub fn run(args: &CommandFiveArgs) -> AnyResult<u64> {
     let mut seeds: Vec<u64> = vec![];
     while let Some(line) = lines.next() {
         if line.starts_with("seeds:") {
-           seeds = line[6..]
-            .split_whitespace()
-            .map(|n| n.trim().parse::<u64>())
-            .collect::<Result<Vec<u64>, ParseIntError>>()?;
+            seeds = line[6..]
+                .split_whitespace()
+                .map(|n| n.trim().parse::<u64>())
+                .collect::<Result<Vec<u64>, ParseIntError>>()?;
         } else if line.contains("map") {
             collections.push(MappingCollection::from_lines(&mut lines).unwrap());
         }
     }
     if !args.two {
-        let result = seeds.iter().map(|&s| {
-            return collections.iter().fold(s, |curr, collection| collection.map(curr));
-        }).min().unwrap();
+        let result = seeds
+            .iter()
+            .map(|&s| {
+                return collections
+                    .iter()
+                    .fold(s, |curr, collection| collection.map(curr));
+            })
+            .min()
+            .unwrap();
         println!("{}", result);
         Ok(result)
     } else {
         let mut ranges: Vec<Range> = vec![];
         let mut seed_iter = seeds.into_iter();
         while let Some(seed) = seed_iter.next() {
-            ranges.push(Range{start: seed, end: seed + seed_iter.next().unwrap() - 1})
+            ranges.push(Range {
+                start: seed,
+                end: seed + seed_iter.next().unwrap() - 1,
+            })
         }
         for collection in collections.iter() {
             let mut new_ranges: Vec<Range> = vec![];
@@ -230,19 +247,19 @@ soil-to-fertilizer map:
 
     #[test]
     fn test_input() {
-        let r = self::run(&CommandFiveArgs{file: "./inputs/five_test.txt".to_string(), two: false});
-        assert_eq!(
-            r.unwrap(),
-            35,
-        );
+        let r = self::run(&CommandFiveArgs {
+            file: "./inputs/five_test.txt".to_string(),
+            two: false,
+        });
+        assert_eq!(r.unwrap(), 35,);
     }
 
     #[test]
     fn test_input_part_two() {
-        let r = self::run(&CommandFiveArgs{file: "./inputs/five_test.txt".to_string(), two: true});
-        assert_eq!(
-            r.unwrap(),
-            46,
-        );
+        let r = self::run(&CommandFiveArgs {
+            file: "./inputs/five_test.txt".to_string(),
+            two: true,
+        });
+        assert_eq!(r.unwrap(), 46,);
     }
 }

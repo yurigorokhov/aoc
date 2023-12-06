@@ -1,18 +1,22 @@
-use thiserror::Error;
 use anyhow::Error as AnyError;
 use anyhow::Result as AnyResult;
+use thiserror::Error;
 
-use std::{fs::File, io::{self, BufRead}, str::FromStr};
 use std::collections::VecDeque;
+use std::{
+    fs::File,
+    io::{self, BufRead},
+    str::FromStr,
+};
 
 use clap::Args;
 
 #[derive(Args, Debug)]
 pub struct CommandFourArgs {
-   file: String,
-   
-   #[clap(long, short = '2', action)]
-   two: bool
+    file: String,
+
+    #[clap(long, short = '2', action)]
+    two: bool,
 }
 
 #[derive(Debug, PartialEq)]
@@ -28,7 +32,7 @@ pub enum CardParseError {
     ParseError(#[from] std::num::ParseIntError),
 
     #[error("Failed to parse card from string: `{0}`")]
-    FormatError(String)
+    FormatError(String),
 }
 
 impl FromStr for Card {
@@ -57,9 +61,12 @@ impl FromStr for Card {
 
 impl Card {
     fn number_matches(&self) -> u32 {
-        self.draw.iter().filter(|n| self.winning.contains(n)).count() as u32
+        self.draw
+            .iter()
+            .filter(|n| self.winning.contains(n))
+            .count() as u32
     }
- 
+
     fn score(&self) -> u32 {
         let n_wins = self.number_matches();
         if n_wins == 0 {
@@ -71,14 +78,13 @@ impl Card {
 }
 
 pub fn run(args: &CommandFourArgs) -> AnyResult<u32> {
-    let file = File::open(args.file.as_str())
-        .expect("Should have been able to read the file");
+    let file = File::open(args.file.as_str()).expect("Should have been able to read the file");
     let cards: Vec<Card> = io::BufReader::new(file)
         .lines()
         .into_iter()
         .map(|l| l?.as_str().parse::<Card>().map_err(|e| AnyError::from(e)))
         .collect::<Result<Vec<Card>, AnyError>>()?;
-    
+
     if !args.two {
         let sum = cards.iter().map(|c| c.score()).sum();
         println!("The sum is: {}", sum);
@@ -107,21 +113,21 @@ mod tests {
 
     #[test]
     fn test_input() {
-        let r = self::run(&CommandFourArgs{file: "./inputs/four_test.txt".to_string(), two: false});
+        let r = self::run(&CommandFourArgs {
+            file: "./inputs/four_test.txt".to_string(),
+            two: false,
+        });
         assert!(r.is_ok());
-        assert_eq!(
-            r.unwrap(),
-            13,
-        );
+        assert_eq!(r.unwrap(), 13,);
     }
 
     #[test]
     fn test_input_part_two() {
-        let r = self::run(&CommandFourArgs{file: "./inputs/four_test.txt".to_string(), two: true});
-        assert_eq!(
-            r.unwrap(),
-            30,
-        );
+        let r = self::run(&CommandFourArgs {
+            file: "./inputs/four_test.txt".to_string(),
+            two: true,
+        });
+        assert_eq!(r.unwrap(), 30,);
     }
 
     #[test]
@@ -140,10 +146,16 @@ mod tests {
     fn test_new_from_line_error() {
         let r = Card::from_str("Card a: 41 48 83 86 17 | 83 86  6 31 17  9 48 53");
         assert!(r.is_err());
-        assert_eq!(r.err().unwrap().to_string(), "invalid digit found in string");
+        assert_eq!(
+            r.err().unwrap().to_string(),
+            "invalid digit found in string"
+        );
 
         let r = Card::from_str("Card 1: a 48 83 86 17 | 83 86  6 31 17  9 48 53");
         assert!(r.is_err());
-        assert_eq!(r.err().unwrap().to_string(), "invalid digit found in string");
+        assert_eq!(
+            r.err().unwrap().to_string(),
+            "invalid digit found in string"
+        );
     }
 }
