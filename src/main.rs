@@ -1,9 +1,11 @@
+pub mod seven;
 pub mod five;
 pub mod four;
 pub mod one;
 pub mod three;
 pub mod two;
 
+use seven::CommandSevenArgs;
 use five::CommandFiveArgs;
 use four::CommandFourArgs;
 use one::CommandOneArgs;
@@ -26,6 +28,7 @@ enum Commands {
     Three(CommandThreeArgs),
     Four(CommandFourArgs),
     Five(CommandFiveArgs),
+    Seven(CommandSevenArgs),
 }
 
 fn main() {
@@ -45,6 +48,9 @@ fn main() {
         }
         Commands::Five(cmd_args) => {
             let _ = five::run(&cmd_args).unwrap();
+        }
+        Commands::Seven(cmd_args) => {
+            let _ = seven::run(&cmd_args).unwrap();
         }
     }
 }
